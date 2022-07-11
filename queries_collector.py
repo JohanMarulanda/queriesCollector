@@ -55,27 +55,25 @@ def getDataFile(file):
             hour = l[1] + 'Z'
             date = date.strftime('%Y-%m-%d') + 'T' + hour
             name = l[9]
-            ip = l[6].split('#')[0]
-            name = l[5].split('@')[1]
+            client_ip = l[6].split('#')[0]
+            client_name = l[5].split('@')[1]
             
             data = {
                 "timestamp": date,
                 "name": name,
-                "client_ip": ip,
-                "client_name": name,
+                "client_ip": client_ip,
+                "client_name": client_name,
                 "type": l[11]
             }
             data_chunk.append(data)
             counter = counter + 1
-
+            data_file.append(data)
             if counter == 500:
                 status = requestDNSQueries(data_chunk)
                 if status == 200:
                     success = success + 1
                 else:
                     failed = failed + 1
-                
-                data_file.append(data_chunk)
                 total_lines += counter
                 data_chunk = []
                 counter = 0
@@ -87,9 +85,29 @@ if __name__ == "__main__":
     total_queries, total_lines, success, failed = getDataFile(args[0])
 
     if total_queries:
-        print(total_queries)
-        print(total_lines)
-        print(success)
-        print(failed)
+        df = pd.DataFrame(total_queries, columns=["timestamp","name","client_ip","client_name", "type"])
+        
+        ips = df.groupby('client_ip', as_index=False).aggregate(Suma=('client_ip', 'count'))
+        ips['porcentaje'] = ips['Suma'] * 100 / total_lines
+        ips = ips.sort_values('Suma', ascending=False)
+
+        host = df.groupby('name', as_index=False).aggregate(Suma=('name', 'count'))
+        host['porcentaje'] = host['Suma'] * 100 / total_lines
+        host = host.sort_values('Suma', ascending=False)
+
+        print('Total Records: ' + str(total_lines))
+        print('')
+        print('Client IPs Rank')
+        print('------------------- ----- -----')
+        print(ips.head(5))
+        print('------------------- ----- -----')
+        print('')
+        print('')
+        print('Host Rank')
+        print('------------------------------------------------------------')
+        print(host.head(5))
+        print('------------------------------------------------------------')
+    
     else:
         logger.error("El archivo esta vacio o no tiene la cantidad de queries necesaria.")
+    
