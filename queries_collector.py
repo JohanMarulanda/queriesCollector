@@ -2,6 +2,7 @@ import requests
 import logging
 import json
 import sys
+import datetime as datetime
 import pandas as pd
 
 
@@ -45,7 +46,9 @@ def getDataFile(file):
     with open(file, "r") as archivo:
         for linea in archivo:
             l = linea.split(' ')
-            date = l[0]
+            date = datetime.datetime.strptime(l[0], "%d-%b-%Y")
+            hour = l[1] + 'Z'
+            date = date.strftime('%Y-%m-%d') + 'T' + hour
             name = l[9]
             ip = l[6].split('#')[0]
             name = l[5].split('@')[1]
@@ -69,10 +72,10 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     total_queries, total_lines = getDataFile(args[0])
 
-    if total_queries and total_lines>=5:
-        requestDNSQueries(total_queries)
+    if total_queries and total_lines>=500:
+        status = requestDNSQueries(total_queries)
     else:
-        logger.error("El archivo esta vacio!")
+        logger.error("El archivo esta vacio o no tiene la cantidad de queries necesaria.")
 
 
 
