@@ -42,6 +42,11 @@ def getDataFile(file):
     #Variales usadas para almacenar las queries a enviar y el numero de lineas leidas
     data_file = []
     total_lines = 0
+    #Cada 500 lineas leidas, se debe enviar la data
+    data_chunk = []
+    counter = 0
+    success = 0
+    failed = 0
     #Extraigo la data y cierro automaticamente el archivo
     with open(file, "r") as archivo:
         for linea in archivo:
@@ -60,26 +65,31 @@ def getDataFile(file):
                 "client_name": name,
                 "type": l[11]
             }
-            data_file.append(data)
-            total_lines = total_lines + 1
-        print("ESTA ES LA DATA QUE VOY A RETORNAR")
-        print(data_file)
-        print(total_lines)
-        return data_file, total_lines
+            data_chunk.append(data)
+            counter = counter + 1
+
+            if counter == 500:
+                status = requestDNSQueries(data_chunk)
+                if status == 200:
+                    success = success + 1
+                else:
+                    failed = failed + 1
+                
+                data_file.append(data_chunk)
+                total_lines += counter
+                data_chunk = []
+                counter = 0
+        return data_file, total_lines, success, failed
 
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    total_queries, total_lines = getDataFile(args[0])
+    total_queries, total_lines, success, failed = getDataFile(args[0])
 
-    if total_queries and total_lines>=500:
-        status = requestDNSQueries(total_queries)
+    if total_queries:
+        print(total_queries)
+        print(total_lines)
+        print(success)
+        print(failed)
     else:
         logger.error("El archivo esta vacio o no tiene la cantidad de queries necesaria.")
-
-
-
-
-   
-
-
